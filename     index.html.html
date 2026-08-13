@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Trading Lab</title>
+<style>
+:root{
+ --bg:#2b2d31;--panel:#34373c;--panel2:#3b3e44;--line:#4b4f56;
+ --text:#f1f2f4;--muted:#a9adb5;--accent:#d7d9dd;--green:#82d39b;--red:#ef8f8f;
+ --shadow:0 12px 35px rgba(0,0,0,.22);--radius:16px;
+}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#292b2f,#303338 55%,#27292d);color:var(--text);font:14px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1250px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.brand{font-size:25px;font-weight:800;letter-spacing:-.7px}.brand span{color:#aeb2b9;font-weight:500}
+.actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer}.btn:hover{background:var(--panel2)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:rgba(52,55,60,.92);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}
+.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.value{font-size:25px;font-weight:800;margin-top:8px}.green{color:var(--green)}.red{color:var(--red)}
+.layout{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}.panel{background:rgba(52,55,60,.94);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.panel h2{font-size:15px;margin:0;padding:16px 18px;border-bottom:1px solid var(--line)}.inside{padding:16px}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.field label{display:block;color:var(--muted);font-size:11px;margin:0 0 6px}.field input,.field select,.field textarea{width:100%;background:#292b2f;border:1px solid #50545c;color:var(--text);border-radius:9px;padding:10px;outline:none}.field textarea{min-height:76px;resize:vertical}.wide{grid-column:span 2}.full{grid-column:1/-1}.submit{margin-top:12px;width:100%;font-weight:800;background:#e2e3e5;color:#24262a;border:0}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid #484b52;white-space:nowrap}th{font-size:11px;color:var(--muted);text-transform:uppercase}tbody tr:hover{background:#3b3e44}
+.pill{padding:4px 8px;border-radius:999px;font-size:11px;background:#45484e}.pwin{color:var(--green);background:#284234}.ploss{color:var(--red);background:#472d2f}
+.empty{padding:40px;text-align:center;color:var(--muted)}.mini{font-size:12px;color:var(--muted);margin-top:6px}
+.chart{height:250px;display:flex;align-items:end;gap:5px;padding:18px}.bar{flex:1;background:#9aa0a8;border-radius:4px 4px 0 0;min-width:3px}.bar.neg{background:#8b5f63}
+@media(max-width:850px){.wrap{padding:12px}.grid{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}.form{grid-template-columns:repeat(2,1fr)}.wide{grid-column:span 2}.top{align-items:flex-start}.actions .btn{padding:8px}.value{font-size:21px}}
+@media(max-width:480px){.grid{grid-template-columns:repeat(2,1fr);gap:8px}.card{padding:12px}.form{grid-template-columns:1fr 1fr}.wrap{padding:9px}.brand{font-size:20px}.panel h2{padding:13px}.inside{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="brand">BTC Trading <span>Lab</span><div class="mini">BTC only · 1 setup/day · journal</div></div>
+<div class="actions">
+<button class="btn" onclick="exportData()">Backup</button>
+<button class="btn" onclick="document.getElementById('importFile').click()">Import</button>
+<input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importData(event)">
+<button class="btn" onclick="clearAll()">Reset</button>
+</div></header>
+
+<section class="grid">
+<div class="card"><div class="label">Net P/L</div><div id="net" class="value">$0.00</div></div>
+<div class="card"><div class="label">Win rate</div><div id="wr" class="value">0%</div></div>
+<div class="card"><div class="label">Trades</div><div id="trades" class="value">0</div></div>
+<div class="card"><div class="label">Fees</div><div id="fees" class="value">$0.00</div></div>
+</section>
+
+<div class="layout">
+<section class="panel"><h2>New trade</h2><div class="inside">
+<form id="form" class="form">
+<div class="field"><label>Date</label><input id="date" type="date" required></div>
+<div class="field"><label>Side</label><select id="side"><option>Long</option><option>Short</option></select></div>
+<div class="field"><label>Entry</label><input id="entry" type="number" step="0.01" required></div>
+<div class="field"><label>SL</label><input id="sl" type="number" step="0.01"></div>
+<div class="field"><label>TP</label><input id="tp" type="number" step="0.01"></div>
+<div class="field"><label>BTC size</label><input id="size" type="number" step="0.001"></div>
+<div class="field"><label>P/L ($)</label><input id="pnl" type="number" step="0.01" required></div>
+<div class="field"><label>Fee ($)</label><input id="fee" type="number" step="0.01" value="0"></div>
+<div class="field"><label>Setup</label><select id="setup"><option>A+ Setup</option><option>POC Reclaim</option><option>VAH Rejection</option><option>VAL Reclaim</option><option>Liquidity Sweep</option><option>Other</option></select></div>
+<div class="field"><label>Session</label><select id="session"><option>New York</option><option>London</option><option>Asia</option><option>Other</option></select></div>
+<div class="field"><label>Hold time (min)</label><input id="hold" type="number" step="1"></div>
+<div class="field wide"><label>Notes</label><textarea id="notes" placeholder="Miért léptél be? Mi működött / mi nem?"></textarea></div>
+<div class="field full"><button class="btn submit" type="submit">ADD TRADE</button></div>
+</form></div></section>
+
+<section class="panel"><h2>Equity curve</h2><div id="chart" class="chart"><div class="empty">Még nincs trade</div></div></section>
+</div>
+
+<section class="panel" style="margin-top:16px"><h2>Trade history</h2><div class="tablewrap">
+<table><thead><tr><th>Date</th><th>Side</th><th>Entry</th><th>SL</th><th>TP</th><th>BTC</th><th>P/L</th><th>Fee</th><th>Setup</th><th>Session</th><th>Hold</th><th></th></tr></thead>
+<tbody id="rows"></tbody></table><div id="empty" class="empty">Még nincs rögzített trade.</div>
+</div></section>
+</div>
+<script>
+let trades=JSON.parse(localStorage.getItem('btcLabTrades')||'[]');
+const $=id=>document.getElementById(id);
+$('date').value=new Date().toISOString().slice(0,10);
+function money(x){return (x>=0?'+':'')+'$'+Math.abs(x).toFixed(2)}
+function save(){localStorage.setItem('btcLabTrades',JSON.stringify(trades));render()}
+function render(){
+ const n=trades.length,w=trades.filter(t=>t.pnl>0).length,fees=trades.reduce((a,t)=>a+t.fee,0),net=trades.reduce((a,t)=>a+t.pnl-t.fee,0);
+ $('trades').textContent=n;$('wr').textContent=n?(w/n*100).toFixed(1)+'%':'0%';$('fees').textContent='$'+fees.toFixed(2);
+ $('net').textContent=money(net);$('net').className='value '+(net>0?'green':net<0?'red':'');
+ $('rows').innerHTML=trades.slice().reverse().map((t,i)=>`<tr><td>${t.date}</td><td><span class="pill">${t.side}</span></td><td>${t.entry}</td><td>${t.sl||'-'}</td><td>${t.tp||'-'}</td><td>${t.size||'-'}</td><td class="${t.pnl>=0?'green':'red'}">${money(t.pnl)}</td><td>$${t.fee.toFixed(2)}</td><td>${t.setup}</td><td>${t.session}</td><td>${t.hold||'-'}</td><td><button class="btn" onclick="del(${trades.length-1-i})">×</button></td></tr>`).join('');
+ $('empty').style.display=n?'none':'block';draw();
+}
+function draw(){const c=$('chart');if(!trades.length){c.innerHTML='<div class="empty">Még nincs trade</div>';return}let cur=0;const vals=trades.map(t=>cur+=t.pnl-t.fee),max=Math.max(1,...vals.map(Math.abs));c.innerHTML=vals.map(v=>`<div class="bar ${v<0?'neg':''}" style="height:${Math.max(3,Math.abs(v)/max*210)}px" title="${money(v)}"></div>`).join('')}
+$('form').addEventListener('submit',e=>{e.preventDefault();trades.push({date:$('date').value,side:$('side').value,entry:+$('entry').value,sl:+$('sl').value||0,tp:+$('tp').value||0,size:+$('size').value||0,pnl:+$('pnl').value,fee:+$('fee').value||0,setup:$('setup').value,session:$('session').value,hold:+$('hold').value||0,notes:$('notes').value});save();e.target.reset();$('date').value=new Date().toISOString().slice(0,10)});
+function del(i){if(confirm('Törlöd ezt a trade-et?')){trades.splice(i,1);save()}}
+function exportData(){
+ const payload={
+   app:"BTC Trading Lab",
+   version:1,
+   exportedAt:new Date().toISOString(),
+   trades:trades
+ };
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='btc-trading-lab-backup-'+new Date().toISOString().slice(0,10)+'.json';
+ a.click();
+ URL.revokeObjectURL(a.href);
+}
+function importData(event){
+ const file=event.target.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+   try{
+     const data=JSON.parse(reader.result);
+     const imported=Array.isArray(data)?data:data.trades;
+     if(!Array.isArray(imported))throw new Error('Invalid backup');
+     if(confirm('Az importált backup '+imported.length+' trade-et tartalmaz. Hozzáadjam a jelenlegi adatokhoz?\n\nOK = hozzáadás\nMégse = csere')){
+       trades=[...trades,...imported];
+     }else{
+       trades=imported;
+     }
+     save();
+     alert('Backup sikeresen betöltve.');
+   }catch(e){
+     alert('Nem sikerült betölteni a backupot. Ellenőrizd, hogy BTC Trading Lab JSON fájl-e.');
+   }
+   event.target.value='';
+ };
+ reader.readAsText(file);
+}
+function clearAll(){
+ if(confirm('Minden trade törlése? Ezt csak backup után csináld!')){
+   trades=[];save();
+ }
+}
+render();
+</script>
+</body></html>
