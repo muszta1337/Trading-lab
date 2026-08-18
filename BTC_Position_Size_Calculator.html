@@ -1,0 +1,23 @@
+<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BTC Position Size</title>
+<style>
+:root{--bg:#303238;--p:#3a3d43;--l:#50545c;--t:#f3f4f6;--m:#b1b4bb;--g:#8bd8a0}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#2c2e33,#363940);color:var(--t);font:15px system-ui,-apple-system,sans-serif}.wrap{max-width:620px;margin:auto;padding:18px}.title{font-size:25px;font-weight:800}.sub{color:var(--m);font-size:12px;margin:4px 0 16px}.panel{background:var(--p);border:1px solid var(--l);border-radius:18px;padding:18px;box-shadow:0 14px 35px #0003}.grid,.results{display:grid;grid-template-columns:1fr 1fr;gap:11px}.field label,.label{display:block;color:var(--m);font-size:11px;text-transform:uppercase;margin-bottom:6px}.field input{width:100%;background:#292b30;color:var(--t);border:1px solid var(--l);border-radius:10px;padding:12px;font-size:16px}.risk{margin:15px 0;padding:12px;border-radius:12px;background:#42454b;display:flex;justify-content:space-between}.result{background:#2b2d32;border:1px solid var(--l);border-radius:12px;padding:13px}.val{font-size:21px;font-weight:800;margin-top:4px}.green{color:var(--g)}.formula{margin-top:16px;color:var(--m);font-size:12px;line-height:1.5}@media(max-width:450px){.wrap{padding:10px}.panel{padding:13px}.grid,.results{gap:8px}.val{font-size:19px}}
+</style></head><body><div class="wrap"><div class="title">BTC Position Size</div><div class="sub">Risk-based calculator · BTC only</div><div class="panel"><div class="grid">
+<div class="field"><label>Account ($)</label><input id="a" type="number" value="10000" step="100"></div>
+<div class="field"><label>Risk (%)</label><input id="rp" type="number" value="1" step=".1"></div>
+<div class="field"><label>Entry</label><input id="e" type="number" value="63780" step=".01"></div>
+<div class="field"><label>Stop Loss</label><input id="s" type="number" value="64000" step=".01"></div>
+<div class="field"><label>Take Profit</label><input id="t" type="number" value="63420" step=".01"></div>
+<div class="field"><label>Leverage</label><input id="l" type="number" value="10" step=".5"></div></div>
+<div class="risk"><span>Max risk</span><strong id="risk">$100.00</strong></div><div class="results">
+<div class="result"><div class="label">Stop distance</div><div id="dist" class="val"></div></div>
+<div class="result"><div class="label">BTC size</div><div id="size" class="val green"></div></div>
+<div class="result"><div class="label">Position value</div><div id="notional" class="val"></div></div>
+<div class="result"><div class="label">Margin @ leverage</div><div id="margin" class="val"></div></div>
+<div class="result"><div class="label">TP profit*</div><div id="profit" class="val green"></div></div>
+<div class="result"><div class="label">R:R</div><div id="rr" class="val"></div></div></div>
+<div class="formula">* TP profit price-move alapján, fee és funding nélkül. A tényleges kockázatot a díjak is növelhetik, ezért érdemes kis ráhagyást hagyni.</div></div></div>
+<script>
+const q=id=>document.getElementById(id), ids=['a','rp','e','s','t','l']; ids.forEach(x=>q(x).oninput=calc);
+const f=(n,d=2)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+function calc(){let A=+q('a').value||0,R=+q('rp').value||0,E=+q('e').value||0,S=+q('s').value||0,T=+q('t').value||0,L=+q('l').value||1,risk=A*R/100,dist=Math.abs(E-S),size=dist?risk/dist:0,notional=size*E,margin=notional/L,tp=Math.abs(T-E),profit=size*tp,rr=dist?tp/dist:0;q('risk').textContent='$'+f(risk);q('dist').textContent=f(dist);q('size').textContent=f(size,4)+' BTC';q('notional').textContent='$'+f(notional);q('margin').textContent='$'+f(margin);q('profit').textContent='$'+f(profit);q('rr').textContent=f(rr,2)+' : 1'}calc();
+</script></body></html>
